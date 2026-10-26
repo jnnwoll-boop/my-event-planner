@@ -1,5 +1,7 @@
 # My Event Planner
 
+For GitHub/Vercel deployment, see DEPLOYMENT.md; no ZIP download is required.
+
 A private, free event planner. No accounts, API keys, subscriptions, external fonts, or internet requests. Nothing to install to open the app in a normal desktop browser.
 
 ## Open the app on your computer
@@ -39,7 +41,7 @@ If Python isn't available and file opening doesn't work, ask for help before ins
 
 ## Development and validation
 
-Plain HTML, CSS, and JavaScript; no build step and no dependencies for the application. All three app files must stay together.
+The app remains plain HTML, CSS, and JavaScript with no runtime dependencies. Vite is a development/build dependency for Vercel. Use Node.js 24, run `npm ci --include=dev`, then `npm run build`. Publish `dist`. Keep all generated app files together.
 
 Existing cloud tools: Node, Python, Chromium, and Playwright. To repeat the browser checks, start the local server above, then run `node tests/browser.cjs` in this cloud checkout. The test uses the cloud's preinstalled Playwright/Chromium and localhost port 8000. It does not install software. Tests cover event CRUD, templates, adjustable estimates, spending, task editing, persistence on reload, exported backup contents, restored backups, invalid imports, mobile overflow, and browser errors. File-URL behavior on a personal computer remains unverified.
 

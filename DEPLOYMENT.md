@@ -1,16 +1,20 @@
 # Publish the PWA over HTTPS
 
-The application is ready for static website hosting. It has no build step, backend, account system, API key, CDN, or paid dependency. No hosting service has been contacted or configured and the app has not been published. Get the owner's permission before choosing or using an external host.
+The application is ready for static website hosting. It has no backend, account system, API key, CDN, or paid dependency. Vite is a pinned build-time dependency. No hosting service has been contacted or configured and the app has not been published. Get the owner's permission before choosing or using an external host.
 
 ## Files to upload
 
-Extract `My-Event-Planner.zip`. Upload the *contents* of its `my-event-planner` folder to a static site's public directory, preserving the icons folder. Required runtime files:
+For Vercel, import this GitHub repository with the project Root Directory set to the repository root (leave it blank or use `.`). `vercel.json` selects Vite, installs with `npm ci --include=dev`, builds with `npm run build`, and publishes `dist`. Use Node.js 24.x. No ZIP or local computer files are needed. Pushes to the connected main branch can trigger deployment.
+
+To verify in Codex, run those same install and build commands. `npm run preview -- --port 8001` serves the production output for testing. Run `TEST_BASE_URL=http://127.0.0.1:8001/ node tests/browser.cjs` and `TEST_BASE_URL=http://127.0.0.1:8001/ node tests/pwa.cjs` using the existing cloud test tools.
+
+For other static hosts, upload the contents of the generated `dist` folder, preserving the icons folder. Required runtime files:
 
 - index.html, style.css, app.js, storage.js, pwa.js
 - sw.js, manifest.webmanifest
 - icons/apple-touch-icon.png, icons/icon-192.png, icons/icon-512.png, icons/icon-maskable-512.png
 
-There is no install/build command. `_headers` supplies recommended security and cache response headers on compatible hosts; on other hosts set equivalent headers in hosting settings. Do not upload Git metadata, tests, or personal backup files. Never put credentials in these files.
+The app needs no runtime server. `vite.config.js` packages the existing static shell unchanged so the service worker keeps its fixed URLs; it does not replace the app or change features. The committed package-lock.json makes installs reproducible. `vercel.json` sets actual response headers on Vercel. `_headers` supplies recommended security and cache response headers on compatible hosts; on other hosts set equivalent headers in hosting settings. Do not upload Git metadata, tests, or personal backup files. Never put credentials in these files.
 
 ## Hosting requirements
 

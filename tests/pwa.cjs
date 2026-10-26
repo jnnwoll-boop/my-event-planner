@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
  const context=await browser.newContext({...devices['iPhone 13'],defaultBrowserType:undefined});
  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
- await page.goto('http://127.0.0.1:8000/');
+ await page.goto((process.env.TEST_BASE_URL || 'http://127.0.0.1:8000/'));
  assert.equal(await page.locator('#backup').isVisible(),false);
  await page.evaluate(()=>navigator.serviceWorker.ready);
  await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
