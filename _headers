@@ -1,0 +1,10 @@
+# Supported by static hosts that implement the _headers convention.
+# On other hosts, configure equivalent response headers in host settings.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-store
