@@ -10,7 +10,7 @@ To verify in Codex, run those same install and build commands. `npm run preview 
 
 For other static hosts, upload the contents of the generated `dist` folder, preserving the icons folder. Required runtime files:
 
-- index.html, style.css, app.js, storage.js, pwa.js
+- index.html, style.css, app.js, storage.js, ideas.js, pwa.js
 - sw.js, manifest.webmanifest
 - icons/apple-touch-icon.png, icons/icon-192.png, icons/icon-512.png, icons/icon-maskable-512.png
 
@@ -43,3 +43,10 @@ Data stays in localStorage under the unchanged `my-event-planner-v1` key, using 
 A future sync implementation can extend this repository boundary while retaining local-first saves. It will need explicit identity/authentication, record revisions, deletion tombstones, conflict resolution, migrations, and a retry queue. Existing stable event/item/task IDs provide a starting point; the current snapshot adapter is not itself a sync protocol. No network sync is currently implemented. Future endpoints would need deliberate CSP/connect-src changes.
 
 Storage is tied to the origin, browser, and device. Desktop file mode, localhost, and the published HTTPS site have different storage. iOS browser and Home Screen storage behavior varies by version and install context: do not promise they share data. Export and import when moving. Browser data may be removed by the user or the OS; keep independent backups in Files or another safe location. Do not use Private Browsing for durable event data.
+
+
+### Ideas storage and offline releases
+
+`ideas.js` implements photo compression, gallery controls, and photo schema validation. Event records can now include an optional `ideas` array; leaving it absent preserves older event/backups. Photos are JPEG data URLs stored with their caption, category, and stable ID inside the existing local snapshot. They are included in backup JSON; no image requests or cloud uploads occur. Import validates photo URL types and waits for successful persistence before replacing current events. See README.md for limits and the suggested future object-storage upgrade.
+
+The Ideas release bumps the service-worker shell cache to v3 and includes ideas.js in both Vite output and offline precaching. The updated worker follows the existing wait-for-closed-windows update policy. Retain app data when troubleshooting updates; do not clear site storage to refresh the shell.

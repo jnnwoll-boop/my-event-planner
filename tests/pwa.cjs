@@ -17,7 +17,7 @@ const assert = require('node:assert/strict');
  await page.getByRole('button',{name:'Create your first event'}).tap();await page.locator('[name=name]').fill('A long mobile celebration name that should wrap comfortably');await page.locator('[name=date]').fill('2027-05-02');await page.getByRole('button',{name:'Save event',exact:true}).tap();
  for(const width of [320,375,390,430,844,1280]){
   await page.setViewportSize({width,height:844});
-  for(const name of ['Overview','Food & drinks','Shopping list','Preparation']){
+  for(const name of ['Overview','Food & drinks','Shopping list','Preparation','Ideas']){
    await page.getByRole('button',{name,exact:true}).click();
    if(name==='Shopping list' && width===320){await page.locator('#itemForm [name=name]').fill('Large shopping item name to check mobile wrapping');await page.locator('[name=price]').fill('12');await page.getByRole('button',{name:'Add item',exact:true}).click()}
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width}px ${name} overflow`);

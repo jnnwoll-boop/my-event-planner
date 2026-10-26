@@ -62,3 +62,18 @@ The Home Screen app and Safari may use separate storage depending on iOS. Export
 For updates, finish editing, close all planner windows (including Safari tabs for it), and reopen while online. The app reports when an update is waiting. Event storage is kept through application cache updates.
 
 Additional cloud validation: with the local server running, `node tests/pwa.cjs` checks the manifest, icon dimensions, install instructions, all event sections at widths 320–1280px, 44px touch targets, and offline reload/edit/save/export. This is Chromium emulation; physical iPhone/Safari verification is still needed after publishing.
+
+
+## Inspiration Board / Ideas
+
+Open an event, then tap **Ideas**. Under **Add photos**, choose one or several photos from your iPhone photo library or computer. Each event has a separate gallery. Enter a short caption (up to 240 characters), choose Decor, Food, Cake, Invitations, Colors, Outfits, or Other, and tap **Save details**. **Delete photo** asks for confirmation and removes the photo and its note. Images are part of the existing event backup export/import, and older backups still import normally.
+
+Photos are processed on your device, not sent to a server. Originals up to 20 MB and 50 megapixels are accepted if your browser can decode them. Saved copies are resized to at most 1,000 pixels on the longest side and compressed to JPEG (at most about 135 KB of JPEG data per photo). Keep original-quality photos separately. JPEG, PNG, and WebP generally work; HEIC support depends on the browser—if it fails, export a JPEG and choose that instead. Transparent backgrounds become white; animated images become still images.
+
+Browser storage is limited: localStorage commonly allows roughly 5 MB per site, with variations by browser. This version uses a conservative limit of 1.8 million characters for the entire planner snapshot when adding photos (about 3.6 MB in UTF-16, including all events and photo data). It also caps each event at 100 photos, but the shared storage budget will usually be reached sooner. The actual number depends on image detail and your other planner data. Storage can fail earlier; the app reports failures and rolls back failed photo additions, edits, or deletions. Export a backup before deleting photos or clearing browser data. A backup is a separate copy and does not itself free space.
+
+For a larger local-only collection, IndexedDB would provide a better browser image store. For a larger library shared across devices, the next cloud upgrade would be **private object storage** (for example, Supabase Storage) plus a database for event/photo metadata, authentication, access rules, and explicit synchronization. Photos should live as files in object storage rather than base64 text in event records. That upgrade needs a separate design and your permission to use an external service; none is connected now.
+
+The Ideas board works offline after the app has updated online. If you do not see **Ideas**, finish editing, close all planner windows and Home Screen instances, then reopen online to activate the new PWA version. Existing events remain stored.
+
+Feature checks: `TEST_BASE_URL=http://127.0.0.1:8001/ node tests/ideas.cjs` against the production preview verifies photo compression, captions/categories, deletion, event separation, storage failure rollback, unsupported photos, backup compatibility, offline photos, and responsive/touch layouts. These are Chromium/iPhone-emulation checks, not physical iPhone/Safari checks.
