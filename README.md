@@ -77,3 +77,23 @@ For a larger local-only collection, IndexedDB would provide a better browser ima
 The Ideas board works offline after the app has updated online. If you do not see **Ideas**, finish editing, close all planner windows and Home Screen instances, then reopen online to activate the new PWA version. Existing events remain stored.
 
 Feature checks: `TEST_BASE_URL=http://127.0.0.1:8001/ node tests/ideas.cjs` against the production preview verifies photo compression, captions/categories, deletion, event separation, storage failure rollback, unsupported photos, backup compatibility, offline photos, and responsive/touch layouts. These are Chromium/iPhone-emulation checks, not physical iPhone/Safari checks.
+
+
+## Detailed Task Planner and subtasks
+
+In an event, open **Preparation** to find the **Task Planner**. All previous checklist tasks appear as main tasks; their titles, dates, and completion status are kept.
+
+- Enter a main task title (for example, Entry Table Setup) and optional due date, then tap **Add task**.
+- Tap **Edit** on a task to change its title, notes/instructions, due date, completion checkbox, and photos. Notes can hold measurements, supplies, instructions, and up to 10,000 characters. Tap **Save task** to keep changes; closing the editor cancels unsaved changes.
+- Tap **+ Add subtask**, enter a title such as Welcome sign, Basket, Camera, or Sign-in book, and save. Subtasks have the same notes, date, completion, and photo fields as main tasks. This planner supports main tasks plus one level of subtasks.
+- Use **↑ Up** and **↓ Down** to reorder within the main list or within a main task’s subtasks. No dragging is needed. **Duplicate** inserts a copy after the original, keeping notes, dates, and photo links. Main-task copies include their subtasks with new IDs; all copied completion checkboxes reset to unchecked.
+- **Hide subtasks** / **Show subtasks** keeps the view manageable. This preference and task order are saved. Each main task shows completed-subtask count and percentage. Its own checkbox is independent: finishing all subtasks does not automatically check the main task.
+- In **Edit**, check several Inspiration Gallery photos to attach them. A photo can be linked to many tasks without storing extra image copies. **Upload new photos** adds compressed photos to the event gallery and links them to this task when saved. Closing without saving does not upload them to the gallery.
+- Tap an attached thumbnail to enlarge it. Tap **Unlink** to remove a task’s attachment while keeping the gallery photo and its other links. Deleting a task also keeps gallery photos. Deleting a photo from **Ideas** removes that original and its links from every task, after confirmation.
+- **Delete** on a main task removes its subtasks too, after confirmation. Subtask deletion affects only that subtask.
+
+All notes, subtasks, completion states, order, collapse preferences, gallery photos, and photo links stay in browser storage and are included in **Export backup**. Import checks relationships and rejects broken photo references. Older backups without these optional task fields remain supported. Browser/image limits are unchanged; keep backups regularly. No cloud account or new service is needed.
+
+After deployment, reopen online and let the PWA update (close old planner windows if an update is waiting). Do not clear browser storage to update. Physical iPhone/Safari behavior should still be checked; cloud tests use Chromium with iPhone emulation.
+
+Task tests: `TEST_BASE_URL=http://127.0.0.1:8001/ node tests/tasks.cjs` against the production preview. They cover main-task/subtask creation/editing/completion/deletion, progress, order, duplication, shared photo selection, direct uploads, enlargement/unlinking, gallery deletion cleanup, storage failures, responsive layouts, offline backup restoration, and invalid photo relationships.

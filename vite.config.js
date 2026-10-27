@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const shellFiles = [
-  'index.html', 'style.css', 'ideas.js', 'app.js', 'storage.js', 'pwa.js', 'sw.js',
+  'index.html', 'style.css', 'ideas.js', 'tasks.js', 'app.js', 'storage.js', 'pwa.js', 'sw.js',
   'manifest.webmanifest', '_headers',
   ...readdirSync(new URL('./icons/', import.meta.url)).map(name => `icons/${name}`)
 ];

@@ -52,9 +52,14 @@ function ideasBoard(e, container) {
     if (!storageOK) throw Error('Browser saving is unavailable. Export a backup before closing.');
     if (!events.includes(e)) throw Error('This event was deleted. The photo was not added.');
     const previous = e.ideas;
+    const previousTasks = structuredClone(e.tasks);
+    const removed = new Set((previous || []).filter(idea => !next.some(photo => photo.id === idea.id)).map(idea => idea.id));
+    for (const task of e.tasks) for (const node of [task, ...(task.subtasks || [])]) {
+      if (node.photoIds) node.photoIds = node.photoIds.filter(id => !removed.has(id));
+    }
     e.ideas = next;
     try { await EventRepository.save({version: 1, events}); }
-    catch { if (previous === undefined) delete e.ideas; else e.ideas = previous; throw Error('Browser storage is full or unavailable. Nothing was changed. Export a backup, then delete unneeded photos to free space.'); }
+    catch { e.tasks = previousTasks; if (previous === undefined) delete e.ideas; else e.ideas = previous; throw Error('Browser storage is full or unavailable. Nothing was changed. Export a backup, then delete unneeded photos to free space.'); }
   }
   container.querySelector('#ideaPhotos').onchange = async ev => {
     if (busy) return;
@@ -91,7 +96,7 @@ function ideasBoard(e, container) {
     finally { lock(false); }
   });
   container.querySelectorAll('[data-delete-idea]').forEach(button => button.onclick = async () => {
-    if (busy || !confirm('Delete this photo and its note? This cannot be undone.')) return;
+    if (busy || !confirm('Delete this photo and its note from the gallery and all linked tasks? This cannot be undone.')) return;
     lock(true);
     try {
       await persist((e.ideas || []).filter(idea => idea.id !== button.dataset.deleteIdea));

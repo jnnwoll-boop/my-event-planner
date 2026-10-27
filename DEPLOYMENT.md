@@ -10,7 +10,7 @@ To verify in Codex, run those same install and build commands. `npm run preview 
 
 For other static hosts, upload the contents of the generated `dist` folder, preserving the icons folder. Required runtime files:
 
-- index.html, style.css, app.js, storage.js, ideas.js, pwa.js
+- index.html, style.css, app.js, storage.js, ideas.js, tasks.js, pwa.js
 - sw.js, manifest.webmanifest
 - icons/apple-touch-icon.png, icons/icon-192.png, icons/icon-512.png, icons/icon-maskable-512.png
 
@@ -50,3 +50,8 @@ Storage is tied to the origin, browser, and device. Desktop file mode, localhost
 `ideas.js` implements photo compression, gallery controls, and photo schema validation. Event records can now include an optional `ideas` array; leaving it absent preserves older event/backups. Photos are JPEG data URLs stored with their caption, category, and stable ID inside the existing local snapshot. They are included in backup JSON; no image requests or cloud uploads occur. Import validates photo URL types and waits for successful persistence before replacing current events. See README.md for limits and the suggested future object-storage upgrade.
 
 The Ideas release bumps the service-worker shell cache to v3 and includes ideas.js in both Vite output and offline precaching. The updated worker follows the existing wait-for-closed-windows update policy. Retain app data when troubleshooting updates; do not clear site storage to refresh the shell.
+
+
+### Detailed Task Planner release
+
+Include `tasks.js` in published assets. The shell cache is now v4. Tasks keep the existing `id`, `text`, `due`, and `done` fields and optionally add `notes`, `photoIds`, `subtasks`, and `collapsed`. Subtasks use the same fields but cannot contain further nested subtasks. `photoIds` refer to event-local gallery IDs; no duplicate image bytes are stored for attachments or duplicated tasks. Deleting a gallery image prunes references from main tasks and subtasks in the same save. Backups remain version 1 with additive optional fields, so existing events and old backups remain valid. Both task saves and gallery deletion roll back related data when persistence fails. Do not downgrade to a pre-task version and import new backups there, because older code does not validate the new relationships.
