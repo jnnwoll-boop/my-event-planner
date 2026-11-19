@@ -4,9 +4,11 @@ document.querySelector('#install').onclick = () => installHelp.showModal();
 document.querySelector('#closeInstall').onclick = () => installHelp.close();
 const offlineStatus = document.querySelector('#connection');
 function connectionStatus() {
-  offlineStatus.textContent = navigator.onLine ? 'Local data · no cloud sync' : 'Offline · changes saved on this device';
+  if (!navigator.onLine) offlineStatus.textContent = 'Offline · changes saved on this device';
+  else if (!EventRepository.signedIn()) offlineStatus.textContent = 'Local data · sign in for cloud sync';
 }
 connectionStatus();
+EventRepository.mount();
 addEventListener('online', connectionStatus);
 addEventListener('offline', connectionStatus);
 if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') {
