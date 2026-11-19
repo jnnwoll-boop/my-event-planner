@@ -1,0 +1,17 @@
+const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const fs = require('node:fs');
+const context = vm.createContext({});
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../tasks.js'),'utf8'),context);
+const validate = context.validateTaskDetails;
+const old = {id:'task',text:'Patio',due:'',done:false,notes:'Keep existing notes',photoIds:['photo'],subtasks:[{id:'sub',text:'Jars',due:'',done:false}]};
+const ideas = [{id:'photo'}];
+assert.doesNotThrow(()=>validate([old],ideas));
+const updated = structuredClone(old);
+updated.details=[{text:'Five jars',kind:'check',done:true},{text:'Paint white',kind:'bullet',done:false}];
+updated.subtasks[0].details=[{text:'Twine',kind:'check',done:false}];
+assert.doesNotThrow(()=>validate([JSON.parse(JSON.stringify(updated))],ideas));
+assert.equal(updated.notes,old.notes);
+assert.deepEqual(updated.photoIds,old.photoIds);
+for(const details of [[{text:'',kind:'check',done:false}],[{text:'Info',kind:'bullet',done:true}],[{text:'Item',kind:'unknown',done:false}]])assert.throws(()=>validate([{...old,details}],ideas));
+console.log('PASS old backups, task and subtask detail round trip, notes and photo links preserved, invalid details rejected');
