@@ -1,4 +1,11 @@
 'use strict';
+// Display old free-form notes as individual lines without migrating or rewriting them.
+function taskNoteItems(notes) {
+  return String(notes || '').split(/\r?\n|\s*[•▪◦‣]\s*/).map(line=>line.trim()).filter(Boolean).map(line=>{
+    const check = line.match(/^(?:[-*]\s+)?\[([ xX])\]\s+(.+)$/);
+    return check ? {text:check[2],kind:'check',done:check[1].toLowerCase()==='x'} : {text:line.replace(/^[-*]\s+/,'').trim(),kind:'bullet',done:false};
+  }).filter(item=>item.text);
+}
 // Existing tasks retain text/due/done; optional fields make old backups compatible.
 function validateTaskDetails(tasks, ideas) {
   const ids = new Set();
@@ -64,10 +71,12 @@ function taskPlanner(e, container) {
   function taskMarkup(task, list, child = false) {
     const count = (task.subtasks || []).length, done = (task.subtasks || []).filter(sub => sub.done).length;
     const details = task.details || [], checks = details.filter(item => item.kind === 'check');
+    const notes = taskNoteItems(task.notes);
+    const noteMarkup = notes.length ? `<div class="task-note-list"><ul>${notes.map(item=>`<li>${item.kind==='check'?(item.done?'☑ ':'☐ '):''}${esc(item.text)}</li>`).join('')}</ul><button type="button" data-check-notes="${esc(task.id)}">Make notes a checklist</button></div>` : '';
     const detailMarkup = details.length ? `<div class="task-details"><ul>${details.map((item,i) => `<li class="${item.kind === 'check' ? 'detail-check' : 'detail-bullet'}">${item.kind === 'check' ? `<label><input type="checkbox" data-detail-owner="${esc(task.id)}" data-detail-index="${i}" ${item.done ? 'checked' : ''}><span class="${item.done ? 'completed-title' : ''}">${esc(item.text)}</span></label>` : `<span>${esc(item.text)}</span>`}</li>`).join('')}</ul>${checks.length ? `<small>${checks.filter(item => item.done).length} of ${checks.length} checklist items complete</small>` : ''}</div>` : '';
     const index = list.indexOf(task);
     return `<article class="${child ? 'subtask' : 'task'} task-node" data-node="${esc(task.id)}"><div class="task-heading"><input type="checkbox" data-complete="${esc(task.id)}" aria-label="Complete ${esc(task.text)}" ${task.done ? 'checked' : ''}><div><h3 class="${task.done ? 'completed-title' : ''}">${esc(task.text)}</h3><small>${date(task.due)}</small></div></div>
-      ${task.notes ? `<p class="task-notes">${esc(task.notes)}</p>` : ''}${detailMarkup}${photoMarkup(task)}
+      ${noteMarkup}${detailMarkup}<details class="task-quick-add"><summary>+ Add checklist items or bullets</summary><form data-quick-details="${esc(task.id)}"><label>One item per line<textarea name="items" rows="3" maxlength="100000" required placeholder="Add items here"></textarea></label><div class="detail-add"><button type="submit" name="kind" value="check">Add checkboxes</button><button type="submit" name="kind" value="bullet">Add bullets</button></div></form></details>${photoMarkup(task)}
       <div class="task-controls"><button type="button" data-edit="${esc(task.id)}">Edit</button><button type="button" data-duplicate="${esc(task.id)}">Duplicate</button><button type="button" data-move="${esc(task.id)}" data-step="-1" aria-label="Move ${esc(task.text)} up" ${index === 0 ? 'disabled' : ''}>↑ Up</button><button type="button" data-move="${esc(task.id)}" data-step="1" aria-label="Move ${esc(task.text)} down" ${index === list.length - 1 ? 'disabled' : ''}>↓ Down</button><button type="button" class="danger" data-delete="${esc(task.id)}">Delete</button></div>
       ${!child ? `<div class="subtask-progress"><p>${done} of ${count} subtasks complete${count ? ` · ${Math.round(done / count * 100)}%` : ''}</p><progress max="${count || 1}" value="${done}" aria-label="Subtask progress for ${esc(task.text)}"></progress></div><div class="task-controls"><button type="button" data-add-sub="${esc(task.id)}">+ Add subtask</button>${count ? `<button type="button" data-toggle="${esc(task.id)}" aria-expanded="${!task.collapsed}">${task.collapsed ? 'Show' : 'Hide'} subtasks</button>` : ''}</div><div class="subtask-list" ${task.collapsed ? 'hidden' : ''}>${(task.subtasks || []).map(sub => taskMarkup(sub, task.subtasks, true)).join('')}</div>` : ''}</article>`;
   }
@@ -84,6 +93,20 @@ function taskPlanner(e, container) {
     container.querySelectorAll('[data-detail-index]').forEach(input => input.onchange = async () => {
       const value = input.checked, owner = input.dataset.detailOwner, index = Number(input.dataset.detailIndex);
       if (await change(() => { const item = locate(owner).task.details[index]; if (item.kind !== 'check') throw Error('Invalid checklist item'); item.done = value; })) refresh(); else input.checked = !value;
+    });
+    container.querySelectorAll('[data-check-notes]').forEach(button=>button.onclick=async()=>{
+      const task=locate(button.dataset.checkNotes).task, items=taskNoteItems(task.notes);
+      if (!items.length) return;
+      if (items.length+(task.details||[]).length>200 || items.some(item=>item.text.length>500)) {notify('Some notes are too long to convert. Shorten them in Edit first.');return;}
+      if (await change(()=>{task.details=[...(task.details||[]),...items.map(item=>({...item,kind:'check'}))];task.notes='';})) refresh();
+    });
+    container.querySelectorAll('[data-quick-details]').forEach(form=>form.onsubmit=async ev=>{
+      ev.preventDefault(); const task=locate(form.dataset.quickDetails).task;
+      const kind=ev.submitter?.value==='bullet'?'bullet':'check';
+      const items=taskNoteItems(form.elements.items.value).map(item=>({...item,kind,done:kind==='check'&&item.done}));
+      if (!items.length) return;
+      if (items.length+(task.details||[]).length>200 || items.some(item=>item.text.length>500)){notify('Use up to 200 items, each no more than 500 characters.');return;}
+      if(await change(()=>{task.details=[...(task.details||[]),...items];}))refresh();
     });
     container.querySelectorAll('[data-edit]').forEach(button => button.onclick = () => editTask(button.dataset.edit));
     container.querySelectorAll('[data-add-sub]').forEach(button => button.onclick = () => editTask(null, button.dataset.addSub));
