@@ -1,6 +1,6 @@
 'use strict';
 // Bump this version whenever any shell asset changes. Never cache event data.
-const CACHE = 'my-event-planner-shell-v7';
+const CACHE = 'my-event-planner-shell-v8';
 const ROOT = new URL('./', self.location.href);
 const ASSETS = ['./', 'index.html', 'style.css', 'storage.js', 'ideas.js', 'tasks.js', 'app.js', 'pwa.js',
   'manifest.webmanifest', 'icons/apple-touch-icon.png', 'icons/icon-192.png',

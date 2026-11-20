@@ -6,6 +6,19 @@ function taskNoteItems(notes) {
     return check ? {text:check[2],kind:'check',done:check[1].toLowerCase()==='x'} : {text:line.replace(/^[-*]\s+/,'').trim(),kind:'bullet',done:false};
   }).filter(item=>item.text);
 }
+// Expand prose-style notes into manageable checklist rows while retaining the source text.
+function taskChecklistRows(notes) {
+  const rows=[];
+  for(const item of taskNoteItems(notes)) {
+    const segments=item.text.split(/;\s+|(?<=[.!?])\s+(?=[A-Z])/).filter(Boolean);
+    for(const segment of segments){
+      const match=segment.match(/^((?:.*?\b)?(?:Already have|Need|Purchase|Borrow|Remaining [^:]+ list|Jenn|Delaney|Dillion|To do)):\s*(.+)$/i);
+      const pieces=match?match[2].replace(/,?\s+and\s+(?=[^,]+$)/i,', ').split(/,\s+/).filter(Boolean):[segment];
+      for(const piece of pieces)rows.push({text:match?`${match[1]}: ${piece}`:piece,done:item.done});
+    }
+  }
+  return rows.map((item,index)=>({...item,key:`${index}:${item.text}`}));
+}
 // Existing tasks retain text/due/done; optional fields make old backups compatible.
 function validateTaskDetails(tasks, ideas) {
   const ids = new Set();
@@ -14,6 +27,7 @@ function validateTaskDetails(tasks, ideas) {
     if (ids.has(task.id)) throw Error('Duplicate task ID');
     ids.add(task.id);
     if (task.notes !== undefined && (typeof task.notes !== 'string' || task.notes.length > 10000)) throw Error('Invalid task notes');
+    if (task.noteChecks !== undefined && (!Array.isArray(task.noteChecks) || task.noteChecks.length > 10000 || task.noteChecks.some(key=>typeof key!=='string'||key.length>10100))) throw Error('Invalid note checklist');
     if (task.details !== undefined && (!Array.isArray(task.details) || task.details.length > 200 || task.details.some(item => !item || typeof item.text !== 'string' || !item.text.trim() || item.text.length > 500 || !['bullet','check'].includes(item.kind) || typeof item.done !== 'boolean' || (item.kind === 'bullet' && item.done)))) throw Error('Invalid task details');
     if (task.collapsed !== undefined && typeof task.collapsed !== 'boolean') throw Error('Invalid task state');
     if (task.photoIds !== undefined && (!Array.isArray(task.photoIds) || task.photoIds.length > 100 || new Set(task.photoIds).size !== task.photoIds.length || task.photoIds.some(id => !photos.has(id)))) throw Error('Invalid task photos');
@@ -71,8 +85,8 @@ function taskPlanner(e, container) {
   function taskMarkup(task, list, child = false) {
     const count = (task.subtasks || []).length, done = (task.subtasks || []).filter(sub => sub.done).length;
     const details = task.details || [], checks = details.filter(item => item.kind === 'check');
-    const notes = taskNoteItems(task.notes);
-    const noteMarkup = notes.length ? `<div class="task-note-list"><ul>${notes.map(item=>`<li>${item.kind==='check'?(item.done?'☑ ':'☐ '):''}${esc(item.text)}</li>`).join('')}</ul><button type="button" data-check-notes="${esc(task.id)}">Make notes a checklist</button></div>` : '';
+    const notes = taskChecklistRows(task.notes), noteChecked = new Set(task.noteChecks || notes.filter(item=>item.done).map(item=>item.key));
+    const noteMarkup = notes.length ? `<div class="task-details"><ul>${notes.map((item,i)=>`<li class="detail-check"><label><input type="checkbox" data-note-owner="${esc(task.id)}" data-note-index="${i}" ${noteChecked.has(item.key)?'checked':''}><span class="${noteChecked.has(item.key)?'completed-title':''}">${esc(item.text)}</span></label></li>`).join('')}</ul><small>${notes.filter(item=>noteChecked.has(item.key)).length} of ${notes.length} note items complete</small></div>` : '';
     const detailMarkup = details.length ? `<div class="task-details"><ul>${details.map((item,i) => `<li class="${item.kind === 'check' ? 'detail-check' : 'detail-bullet'}">${item.kind === 'check' ? `<label><input type="checkbox" data-detail-owner="${esc(task.id)}" data-detail-index="${i}" ${item.done ? 'checked' : ''}><span class="${item.done ? 'completed-title' : ''}">${esc(item.text)}</span></label>` : `<span>${esc(item.text)}</span>`}</li>`).join('')}</ul>${checks.length ? `<small>${checks.filter(item => item.done).length} of ${checks.length} checklist items complete</small>` : ''}</div>` : '';
     const index = list.indexOf(task);
     return `<article class="${child ? 'subtask' : 'task'} task-node" data-node="${esc(task.id)}"><div class="task-heading"><input type="checkbox" data-complete="${esc(task.id)}" aria-label="Complete ${esc(task.text)}" ${task.done ? 'checked' : ''}><div><h3 class="${task.done ? 'completed-title' : ''}">${esc(task.text)}</h3><small>${date(task.due)}</small></div></div>
@@ -94,11 +108,9 @@ function taskPlanner(e, container) {
       const value = input.checked, owner = input.dataset.detailOwner, index = Number(input.dataset.detailIndex);
       if (await change(() => { const item = locate(owner).task.details[index]; if (item.kind !== 'check') throw Error('Invalid checklist item'); item.done = value; })) refresh(); else input.checked = !value;
     });
-    container.querySelectorAll('[data-check-notes]').forEach(button=>button.onclick=async()=>{
-      const task=locate(button.dataset.checkNotes).task, items=taskNoteItems(task.notes);
-      if (!items.length) return;
-      if (items.length+(task.details||[]).length>200 || items.some(item=>item.text.length>500)) {notify('Some notes are too long to convert. Shorten them in Edit first.');return;}
-      if (await change(()=>{task.details=[...(task.details||[]),...items.map(item=>({...item,kind:'check'}))];task.notes='';})) refresh();
+    container.querySelectorAll('[data-note-index]').forEach(input=>input.onchange=async()=>{
+      const value=input.checked, owner=input.dataset.noteOwner, index=Number(input.dataset.noteIndex);
+      if(await change(()=>{const task=locate(owner).task, rows=taskChecklistRows(task.notes), keys=new Set(task.noteChecks||rows.filter(item=>item.done).map(item=>item.key));if(!rows[index])throw Error('Invalid note item');if(value)keys.add(rows[index].key);else keys.delete(rows[index].key);task.noteChecks=[...keys];}))refresh();else input.checked=!value;
     });
     container.querySelectorAll('[data-quick-details]').forEach(form=>form.onsubmit=async ev=>{
       ev.preventDefault(); const task=locate(form.dataset.quickDetails).task;
@@ -122,7 +134,7 @@ function taskPlanner(e, container) {
       if (await change(() => {
         const {task, list} = locate(button.dataset.duplicate), copy = structuredClone(task);
         copy.id = uid(); copy.text = task.text.slice(0, 293) + ' (copy)'; copy.done = false;
-        const resetDetails = node => (node.details || []).forEach(item => item.done = false);
+        const resetDetails = node => { (node.details || []).forEach(item => item.done = false); node.noteChecks = []; };
         resetDetails(copy);
         if (copy.subtasks) copy.subtasks.forEach(sub => { sub.id = uid(); sub.done = false; resetDetails(sub); });
         list.splice(list.indexOf(task) + 1, 0, copy);
